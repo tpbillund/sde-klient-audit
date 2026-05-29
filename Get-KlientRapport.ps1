@@ -3,13 +3,13 @@
 .SYNOPSIS
     Klientrapport-script til elev-klienter (Windows 11)
 .DESCRIPTION
-    Kørsel: iwr -useb https://raw.githubusercontent.com/tpbillund/sde-klient-audit/main/Get-KlientRapport.ps1 | iex
+    Koersel: iwr -useb https://raw.githubusercontent.com/tpbillund/sde-klient-audit/main/Get-KlientRapport.ps1 | iex
     Eller lokalt: .\Get-KlientRapport.ps1
 #>
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# OUTPUT-SYSTEM – skærm MED farver, fil med REN tekst
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
+# OUTPUT-SYSTEM - skaerm MED farver, fil med REN tekst
+# ===============================================================================
 
 $script:RapportBuffer = [System.Collections.Generic.List[string]]::new()
 
@@ -44,7 +44,7 @@ function Write-Ok      { param([string]$B) Out-Linje "  [OK]  $B" "Green"    }
 function Write-Advarsel{ param([string]$B) Out-Linje "  [!]   $B" "Red"      }
 function Write-Springer{ param([string]$B) Out-Linje "  [-]   $B" "DarkGray" }
 function Write-Info    { param([string]$B) Out-Linje "        $B" "Gray"     }
-function Write-Seperator { Out-Linje "  $("─" * 56)" "DarkGray" }
+function Write-Seperator { Out-Linje "  $("-" * 56)" "DarkGray" }
 
 function Write-Item {
     param([string]$Label, [string]$Vaerdi)
@@ -59,9 +59,9 @@ function Write-StatusLinje {
     $script:RapportBuffer.Add("        $($Navn.PadRight(35)) $marker $Status")
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # SEKTIONER
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 function Get-SystemInfo {
     Write-Header "SYSTEMINFO"
@@ -73,8 +73,8 @@ function Get-SystemInfo {
     $cpu  = Get-CimInstance Win32_Processor | Select-Object -First 1
 
     Write-Item "Computernavn"       $cs.Name
-    Write-Item "Domæne / Workgroup" $cs.Domain
-    Write-Item "Bruger (logget på)" $cs.UserName
+    Write-Item "Domaene / Workgroup" $cs.Domain
+    Write-Item "Bruger (logget paa)" $cs.UserName
     Write-Item "OS"                 $os.Caption
     Write-Item "OS Build"           $os.BuildNumber
     Write-Item "OS Arkitektur"      $os.OSArchitecture
@@ -133,11 +133,11 @@ function Get-DomainStatus {
     $cs = Get-CimInstance Win32_ComputerSystem
 
     if ($cs.PartOfDomain) {
-        Write-Ok "Maskinen er medlem af et domæne"
-        Write-Item "Domæne"         $cs.Domain
+        Write-Ok "Maskinen er medlem af et domaene"
+        Write-Item "Domaene"         $cs.Domain
         Write-Seperator
 
-        # Tjek om AD-modulet er tilgængeligt
+        # Tjek om AD-modulet er tilgaengeligt
         if (Get-Module -ListAvailable -Name ActiveDirectory) {
             Import-Module ActiveDirectory -ErrorAction SilentlyContinue
             try {
@@ -149,7 +149,7 @@ function Get-DomainStatus {
                     Write-Item "Sidst logon (AD)"    $(if ($bruger.LastLogonDate) { $bruger.LastLogonDate.ToString('dd-MM-yyyy HH:mm') } else { "Ukendt" })
                 }
             } catch {
-                Write-Springer "Kunne ikke hente AD-computerinfo (kræver domæneadgang)."
+                Write-Springer "Kunne ikke hente AD-computerinfo (kraever domaeneadgang)."
             }
         }
 
@@ -158,7 +158,7 @@ function Get-DomainStatus {
         try {
             $brugerNavn = $env:USERNAME
             Write-Item "Brugernavn"  $brugerNavn
-            Write-Item "Domæne"      $env:USERDOMAIN
+            Write-Item "Domaene"      $env:USERDOMAIN
 
             if (Get-Module -ListAvailable -Name ActiveDirectory) {
                 $adBruger = Get-ADUser $brugerNavn -Properties DisplayName, EmailAddress,
@@ -183,7 +183,7 @@ function Get-DomainStatus {
             Write-Springer "Kunne ikke hente brugerinfo fra AD."
         }
 
-        # GPO'er anvendt på maskinen
+        # GPO'er anvendt paa maskinen
         Write-SubHeader "Anvendte GPO'er (gpresult)"
         try {
             $gpresult = gpresult /r /scope computer 2>&1
@@ -194,11 +194,12 @@ function Get-DomainStatus {
                 Write-Springer "Ingen GPO'er fundet via gpresult."
             }
         } catch {
-            Write-Springer "Kunne ikke køre gpresult."
+            Write-Springer "Kunne ikke koere gpresult."
         }
 
     } else {
-        Write-Advarsel "Maskinen er IKKE medlem af et domæne (Workgroup: $($cs.Domain))"
+        Write-Springer "Maskinen er ikke medlem af et domaene - koerer i Workgroup: $($cs.Domain)"
+        Write-Info "         Domaene-sektionen springes over."
     }
 }
 
@@ -209,12 +210,12 @@ function Get-DrevOgShares {
     Write-SubHeader "Lokale drev"
     $drev = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -notlike "\\*" }
     foreach ($d in $drev) {
-        $brugt = if ($d.Used) { "$([math]::Round($d.Used / 1GB, 1)) GB brugt" } else { "–" }
-        $fri   = if ($d.Free) { "$([math]::Round($d.Free / 1GB, 1)) GB fri" } else { "–" }
-        Out-Linje "        [$($d.Name):] $brugt  /  $fri  – $($d.Root)" "White"
+        $brugt = if ($d.Used) { "$([math]::Round($d.Used / 1GB, 1)) GB brugt" } else { "-" }
+        $fri   = if ($d.Free) { "$([math]::Round($d.Free / 1GB, 1)) GB fri" } else { "-" }
+        Out-Linje "        [$($d.Name):] $brugt  /  $fri  - $($d.Root)" "White"
     }
 
-    # Netværksdrev (mappede)
+    # Netvaerksdrev (mappede)
     Write-SubHeader "Mappede netvaerksdrev"
     $netDrev = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -like "\\*" }
     if ($netDrev) {
@@ -262,7 +263,7 @@ function Get-InstalleretSoftware {
         Write-Seperator
         foreach ($s in $software) {
             $navn    = $s.DisplayName.PadRight(45)
-            $version = if ($s.DisplayVersion) { $s.DisplayVersion } else { "–" }
+            $version = if ($s.DisplayVersion) { $s.DisplayVersion } else { "-" }
             Write-Info "$navn $version"
         }
     } catch {
@@ -326,7 +327,7 @@ function Get-WindowsUpdate {
         $pendingUpdates = $updateSearcher.Search("IsInstalled=0 and Type='Software'")
 
         if ($pendingUpdates.Updates.Count -eq 0) {
-            Write-Ok "Systemet er opdateret – ingen afventende opdateringer."
+            Write-Ok "Systemet er opdateret - ingen afventende opdateringer."
         } else {
             Write-Advarsel "Afventende opdateringer: $($pendingUpdates.Updates.Count)"
             Write-Seperator
@@ -347,7 +348,7 @@ function Get-WindowsUpdate {
         $hotfixes = Get-HotFix | Sort-Object InstalledOn -Descending | Select-Object -First 5
         foreach ($h in $hotfixes) {
             $dato = if ($h.InstalledOn) { $h.InstalledOn.ToString('dd-MM-yyyy') } else { "Ukendt" }
-            Write-Info "$($h.HotFixID.PadRight(15)) $dato  –  $($h.Description)"
+            Write-Info "$($h.HotFixID.PadRight(15)) $dato  -  $($h.Description)"
         }
     } catch {
         Write-Springer "Kunne ikke hente hotfix-historik."
@@ -386,7 +387,7 @@ function Get-LokaleKonti {
     }
 }
 
-# ─── Filnavn ──────────────────────────────────────────────────────────────────
+# --- Filnavn ------------------------------------------------------------------
 
 function Gem-Rapport {
     $filnavn = "$($env:COMPUTERNAME)_KlientRapport.txt"
@@ -401,9 +402,9 @@ function Gem-Rapport {
     }
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 # HOVED
-# ═══════════════════════════════════════════════════════════════════════════════
+# ===============================================================================
 
 Clear-Host
 
@@ -411,7 +412,7 @@ $velkomst = @(
     "",
     "  ##################################################",
     "  #                                                #",
-    "  #       KLIENT-RAPPORT  –  ELEV MASKINE          #",
+    "  #       KLIENT-RAPPORT  -  ELEV MASKINE          #",
     "  #     Syddansk Erhvervsskole Vejle               #",
     "  #              IT & Data                         #",
     "  #                                                #",
