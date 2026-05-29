@@ -10,10 +10,7 @@
 Scriptet er designet til undervisningsbrug, hvor elever selv opsætter et klientmiljø via vSphere. Når eleven kører scriptet på deres Windows 11 klient, genereres en komplet og overskuelig rapport over hele klientmiljøet.
 
 Miljøet består typisk af:
-- 2× Windows 11 klienter
-- 1× Linux maskine (Samba shares)
-- 1× Windows Server 2022/2025 (AD, DHCP, DNS, GPO, Shares)
-
+- Windows 11 klient(er)
 ---
 
 ## 📦 Hvad rapporten indeholder
