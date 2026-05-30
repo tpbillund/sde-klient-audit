@@ -1,14 +1,14 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Klientrapport-script til elev-klienter (Windows 11)
 .DESCRIPTION
-    Koersel: iwr -useb https://raw.githubusercontent.com/tpbillund/sde-klient-audit/main/Get-KlientRapport.ps1 | iex
+    Kørsel: iwr -useb https://raw.githubusercontent.com/tpbillund/sde-klient-audit/main/Get-KlientRapport.ps1 | iex
     Eller lokalt: .\Get-KlientRapport.ps1
 #>
 
 # ===============================================================================
-# OUTPUT-SYSTEM - skaerm MED farver, fil med REN tekst
+# OUTPUT-SYSTEM - skærm MED farver, fil med REN tekst
 # ===============================================================================
 
 $script:RapportBuffer = [System.Collections.Generic.List[string]]::new()
@@ -47,8 +47,8 @@ function Write-Info    { param([string]$B) Out-Linje "        $B" "Gray"     }
 function Write-Seperator { Out-Linje "  $("-" * 56)" "DarkGray" }
 
 function Write-Item {
-    param([string]$Label, [string]$Vaerdi)
-    Out-Linje "        $($Label.PadRight(25)) : $Vaerdi" "White"
+    param([string]$Label, [string]$Værdi)
+    Out-Linje "        $($Label.PadRight(25)) : $Værdi" "White"
 }
 
 function Write-StatusLinje {
@@ -73,8 +73,8 @@ function Get-SystemInfo {
     $cpu  = Get-CimInstance Win32_Processor | Select-Object -First 1
 
     Write-Item "Computernavn"       $cs.Name
-    Write-Item "Domaene / Workgroup" $cs.Domain
-    Write-Item "Bruger (logget paa)" $cs.UserName
+    Write-Item "Domæne / Workgroup" $cs.Domain
+    Write-Item "Bruger (logget på)" $cs.UserName
     Write-Item "OS"                 $os.Caption
     Write-Item "OS Build"           $os.BuildNumber
     Write-Item "OS Arkitektur"      $os.OSArchitecture
@@ -86,8 +86,8 @@ function Get-SystemInfo {
     Write-Item "Sidst bootet"       $os.LastBootUpTime.ToString('dd-MM-yyyy HH:mm')
 }
 
-function Get-NetvaerkInfo {
-    Write-Header "NETVAERK"
+function Get-NetværkInfo {
+    Write-Header "NETVÆRK"
 
     $adaptere = Get-CimInstance Win32_NetworkAdapterConfiguration |
                 Where-Object { $_.IPEnabled }
@@ -101,7 +101,7 @@ function Get-NetvaerkInfo {
         Write-Item "  DHCP Aktiveret"  $n.DHCPEnabled
         if ($n.DHCPEnabled -and $n.DHCPServer) {
             Write-Item "  DHCP Server"    $n.DHCPServer
-            Write-Item "  Lease udloeber" $n.DHCPLeaseExpires
+            Write-Item "  Lease udløber" $n.DHCPLeaseExpires
         }
         Write-Item "  MAC Adresse"     $n.MACAddress
         Write-Seperator
@@ -133,11 +133,11 @@ function Get-DomainStatus {
     $cs = Get-CimInstance Win32_ComputerSystem
 
     if ($cs.PartOfDomain) {
-        Write-Ok "Maskinen er medlem af et domaene"
-        Write-Item "Domaene"         $cs.Domain
+        Write-Ok "Maskinen er medlem af et domæne"
+        Write-Item "Domæne"         $cs.Domain
         Write-Seperator
 
-        # Tjek om AD-modulet er tilgaengeligt
+        # Tjek om AD-modulet er tilgængeligt
         if (Get-Module -ListAvailable -Name ActiveDirectory) {
             Import-Module ActiveDirectory -ErrorAction SilentlyContinue
             try {
@@ -149,7 +149,7 @@ function Get-DomainStatus {
                     Write-Item "Sidst logon (AD)"    $(if ($bruger.LastLogonDate) { $bruger.LastLogonDate.ToString('dd-MM-yyyy HH:mm') } else { "Ukendt" })
                 }
             } catch {
-                Write-Springer "Kunne ikke hente AD-computerinfo (kraever domaeneadgang)."
+                Write-Springer "Kunne ikke hente AD-computerinfo (kræver domæneadgang)."
             }
         }
 
@@ -158,7 +158,7 @@ function Get-DomainStatus {
         try {
             $brugerNavn = $env:USERNAME
             Write-Item "Brugernavn"  $brugerNavn
-            Write-Item "Domaene"      $env:USERDOMAIN
+            Write-Item "Domæne"      $env:USERDOMAIN
 
             if (Get-Module -ListAvailable -Name ActiveDirectory) {
                 $adBruger = Get-ADUser $brugerNavn -Properties DisplayName, EmailAddress,
@@ -183,7 +183,7 @@ function Get-DomainStatus {
             Write-Springer "Kunne ikke hente brugerinfo fra AD."
         }
 
-        # GPO'er anvendt paa maskinen
+        # GPO'er anvendt på maskinen
         Write-SubHeader "Anvendte GPO'er (gpresult)"
         try {
             $gpresult = gpresult /r /scope computer 2>&1
@@ -194,17 +194,17 @@ function Get-DomainStatus {
                 Write-Springer "Ingen GPO'er fundet via gpresult."
             }
         } catch {
-            Write-Springer "Kunne ikke koere gpresult."
+            Write-Springer "Kunne ikke køre gpresult."
         }
 
     } else {
-        Write-Springer "Maskinen er ikke medlem af et domaene - koerer i Workgroup: $($cs.Domain)"
-        Write-Info "         Domaene-sektionen springes over."
+        Write-Springer "Maskinen er ikke medlem af et domæne - kører i Workgroup: $($cs.Domain)"
+        Write-Info "         Domæne-sektionen springes over."
     }
 }
 
 function Get-DrevOgShares {
-    Write-Header "DREV OG NETVAERKSDREV"
+    Write-Header "DREV OG NETVÆRKSDREV"
 
     # Lokale drev
     Write-SubHeader "Lokale drev"
@@ -215,15 +215,15 @@ function Get-DrevOgShares {
         Out-Linje "        [$($d.Name):] $brugt  /  $fri  - $($d.Root)" "White"
     }
 
-    # Netvaerksdrev (mappede)
-    Write-SubHeader "Mappede netvaerksdrev"
+    # Netværksdrev (mappede)
+    Write-SubHeader "Mappede netværksdrev"
     $netDrev = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -like "\\*" }
     if ($netDrev) {
         foreach ($nd in $netDrev) {
             Out-Linje "        [$($nd.Name):] -> $($nd.Root)" "White"
         }
     } else {
-        Write-Springer "Ingen mappede netvaerksdrev fundet."
+        Write-Springer "Ingen mappede netværksdrev fundet."
     }
 
     # Printers
@@ -393,7 +393,7 @@ function Gem-Rapport {
     $filnavn = "$($env:COMPUTERNAME)_KlientRapport.txt"
     $sti     = "$env:USERPROFILE\Desktop\$filnavn"
     try {
-        $script:RapportBuffer | Out-File -FilePath $sti -Encoding UTF8
+        $script:RapportBuffer | Out-File -FilePath $sti -Encoding utf8BOM
         Write-Host ""
         Write-Host "  Rapport gemt: $sti" -ForegroundColor Green
         $script:RapportBuffer.Add("Rapport gemt: $sti")
@@ -429,7 +429,7 @@ foreach ($l in $velkomst) {
 }
 
 Get-SystemInfo
-Get-NetvaerkInfo
+Get-NetværkInfo
 Get-DomainStatus
 Get-DrevOgShares
 Get-InstalleretSoftware
@@ -450,7 +450,7 @@ foreach ($l in $slut) {
     $script:RapportBuffer.Add($l)
 }
 
-$gem = Read-Host "  Vil du gemme rapporten som .txt fil paa skrivebordet? (J/N)"
+$gem = Read-Host "  Vil du gemme rapporten som .txt fil på skrivebordet? (J/N)"
 if ($gem -match "^[JjYy]") {
     Gem-Rapport
 }
